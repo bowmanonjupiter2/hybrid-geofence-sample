@@ -49,7 +49,8 @@ function App() {
   const tryLocateByVX = async () => {
     try {
 
-      const response = await fetch('http://192.168.50.173:8080/http://120.79.165.40/fetchWechatTicket', {
+      // use your vx sdk signature service here
+      const response = await fetch('your service', {
         method: "GET",
         headers : {
           "Content-Type" : "application/json",
