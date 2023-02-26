@@ -18,7 +18,7 @@ export function DateTimeInput({ value, onChange }) {
   return (
     <>
       <div>
-        <label htmlFor="dt" className="block text-sm font-normal leading-5 text-gray-500">Pick Target Date/Time</label>
+        <label htmlFor="dt" className="block text-sm font-normal leading-5 text-gray-500">pick check-in date/time</label>
         <div className="mt-1 flex rounded-md shadow-sm">
           <div className="relative flex-grow">
             <input type="datetime-local" value={_value}
