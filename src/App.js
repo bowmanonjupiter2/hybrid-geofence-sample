@@ -81,12 +81,15 @@ function App() {
         setIsVXLocationAcquired(false);
         setIsVXLocatingInProgress(false);
         console.log("weixin js sdk config failure:", res);
-
+        console.log("try switch to use H5 geolocation");
+        tryLocateByH5();
       });
     } catch (e) {
       setIsVXLocationAcquired(false);
       setIsVXLocatingInProgress(false);
       console.log("get weixin signature failure:", e);
+      console.log("try switch to use H5 geolocation");
+      tryLocateByH5();
     }
   }
 
