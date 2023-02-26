@@ -1,60 +1,66 @@
-import logo from './logo.svg';
-import './App.css';
-import { useEffect, useState } from 'react';
-import * as wx from '@tybys/jweixin';
-import DatePicker from "react-mobile-datepicker";
-import { format } from "date-fns";
-import moment from 'moment';
+import logo from "./logo.svg";
+import "./App.css";
+
+import { useEffect, useState } from "react";
+
+import * as wx from "@tybys/jweixin";
 import getDistance from "geolib/es/getPreciseDistance";
 
+import { DateTimeInput } from "./DateTimeInput";
+import moment from "moment";
 
-const locationA = { latitude: 23.122012, longitude: 113.328508 }; // gcj02
-const locationB = { latitude: 34.212494, longitude: 108.840383 }; // gcj02
-
+// gcj02 coordinates for the destination, make sure the coordinate you get from the location service is also in gcj02
+const locationA = { latitude: 23.122012, longitude: 113.328508 };
+const locationB = { latitude: 34.212494, longitude: 108.840383 };
 
 function App() {
-
   const [isStartVXLocating, setIsStartVXLocating] = useState(false);
-
-  const [selectDate, setSelectDate] = useState(new Date());
-  const [isOpenCalendar, setIsOpenCalendar] = useState(false);
-  const [checkInDistance, setCheckInDistance] = useState(500);
-  const [checkInStatusDescription, setCheckInStatusDescription] = useState("You are not yet checked in")
+  const [isStartH5Locating, setIsStartH5Locating] = useState(false);
 
   const [isH5LocationAcquired, setIsH5LocationAcquired] = useState(false);
   const [h5UserLocationLat, setH5UserLocationLat] = useState(null);
   const [h5UserLocationLon, setH5UserLocationLon] = useState(null);
 
-  const [isVXLocationAcquired,setIsVXLocationAcquired] = useState(false);
+  const [isVXLocationAcquired, setIsVXLocationAcquired] = useState(false);
   const [vxUserLocationLat, setVXUserLocationLat] = useState(null);
   const [vxUserLocationLon, setVXUserLocationLon] = useState(null);
 
-  function handleSelectDate(day) {
-    setSelectDate(day);
-    setIsOpenCalendar(false);
+  const [selectDateTime, setSelectDateTime] = useState(moment());
+
+  const [checkInDistance, setCheckInDistance] = useState(500);
+  const [checkInStatusDescription, setCheckInStatusDescription] = useState(
+    "you are not checked in"
+  );
+
+  function isWeiXinBrowser() {
+    var agent = navigator.userAgent.toLocaleLowerCase();
+    if (agent.match(/MicroMessenger/i) === "micromessenger") {
+      return true;
+    } else {
+      return false;
+    }
   }
-  function handleCancelPickDate() {
-    setIsOpenCalendar(false);
-  }
-  function handleOpenCalendar() {
-    setIsOpenCalendar(true);
-  }
-  
+
   useEffect(() => {
-    if(isStartVXLocating) {
+    if (isStartVXLocating) {
+      alert("try to locate you by weixin sdk")
       tryLocateByVX();
     }
-  }, [isStartVXLocating]);
+    if (isStartH5Locating) {
+      alert("try to locate you by h5 geolocation")
+      tryLocateByH5();
+    }
+  }, [isStartVXLocating, isStartH5Locating]);
 
-  const tryLocateByVX = async () => {
+  async function tryLocateByVX() {
+  // const tryLocateByVX = async () => {
     try {
-
       // use your vx sdk signature service here
-      const response = await fetch('your service', {
+      const response = await fetch("your service", {
         method: "GET",
-        headers : {
-          "Content-Type" : "application/json",
-        }
+        headers: {
+          "Content-Type": "application/json",
+        },
       });
 
       const jsonAuthData = await response.json();
@@ -65,43 +71,41 @@ function App() {
         timestamp: jsonAuthData.timestamp,
         nonceStr: jsonAuthData.nonceStr,
         signature: jsonAuthData.signature,
-        jsApiList: ['getLocation']
+        jsApiList: ["getLocation"],
       });
 
-      wx.ready(function(){
+      wx.ready(function () {
         console.log("wx js sdk config ready, begin to request location");
         wx.getLocation({
-          type: 'gcj02',
+          type: "gcj02",
           success: function (res) {
             setVXUserLocationLat(res.latitude);
             setVXUserLocationLon(res.longitude);
             setIsVXLocationAcquired(true);
+            checkIn();
             // var speed = res.speed;
             // var accuracy = res.accuracy;
-          }
-        })
-        
-    
-      })
-      wx.error(function(res){
+          },
+        });
+      });
+      wx.error(function (res) {
         alert("vx auth error:" + res);
         console.log("vx auth error:", res);
       });
-      
     } catch (e) {
-        alert("vx config error:" + e)
-        console.log("wx config error:", e);
+      alert("vx config error:" + e);
+      console.log("wx config error:", e);
     }
-  }
+  };
 
-  function tryLocateByH5() {
+  async function tryLocateByH5() {
     if ("geolocation" in navigator) {
-
       navigator.geolocation.getCurrentPosition(
         (position) => {
           setH5UserLocationLat(position.coords.latitude);
           setH5UserLocationLon(position.coords.longitude);
           setIsH5LocationAcquired(true);
+          checkIn();
         },
         (err) => {
           switch (err.code) {
@@ -130,12 +134,25 @@ function App() {
   }
 
   function checkIn() {
-    if (moment() < selectDate) {
+
+    if (moment() < selectDateTime) {
       alert("please only check in on the party day!");
       return;
     }
+
+    if (!isStartH5Locating && !isStartH5Locating) {
+      alert ("starting locating your position...")
+      if (isWeiXinBrowser()){
+        alert("you are using weixin browser")
+        setIsStartVXLocating(true);
+      } else {
+        alert("you are using other browser")
+        setIsStartH5Locating(true);
+      }
+    }
+
     if (!isH5LocationAcquired && !isVXLocationAcquired) {
-      alert("sorry, we need to know your location first");
+      alert("hold on , locating in progress...");
       return;
     }
 
@@ -158,7 +175,10 @@ function App() {
         },
         locationB
       );
-      userDistanceToNearest_VX = Math.min(userDistanceToA_VX, userDistanceToB_VX)
+      userDistanceToNearest_VX = Math.min(
+        userDistanceToA_VX,
+        userDistanceToB_VX
+      );
     }
 
     if (isH5LocationAcquired) {
@@ -176,15 +196,25 @@ function App() {
         },
         locationB
       );
-      userDistanceToNearest_H5 = Math.min(userDistanceToA_H5, userDistanceToB_H5)
+      userDistanceToNearest_H5 = Math.min(
+        userDistanceToA_H5,
+        userDistanceToB_H5
+      );
     }
-    userDistanceToNearestParty = Math.min(userDistanceToNearest_VX, userDistanceToNearest_H5);
+    userDistanceToNearestParty = Math.min(
+      userDistanceToNearest_VX,
+      userDistanceToNearest_H5
+    );
 
     if (userDistanceToNearestParty <= checkInDistance) {
       alert("You have checked in the party, enjoy!");
       setCheckInStatusDescription("You are checked in.");
     } else {
-      alert("Sorry, you are too far away from the party location by " + userDistanceToNearestParty + " metres");
+      alert(
+        "Sorry, you are too far away from the party location by " +
+          userDistanceToNearestParty +
+          " metres"
+      );
       setCheckInStatusDescription("You are not yet checked in");
     }
   }
@@ -193,15 +223,25 @@ function App() {
   var h5LocationDescription;
 
   if (isVXLocationAcquired) {
-    vxLocationDescription = "You are located at (lat: " + vxUserLocationLat + ", lon: " + vxUserLocationLon + ")";
+    vxLocationDescription =
+      "You are located at (lat: " +
+      vxUserLocationLat +
+      ", lon: " +
+      vxUserLocationLon +
+      ")";
   } else {
-    vxLocationDescription = "Pending vx location data"
+    vxLocationDescription = "pending location data";
   }
 
   if (isH5LocationAcquired) {
-    h5LocationDescription = "You are located at (lat: " + h5UserLocationLat + ", lon: " + h5UserLocationLon + ")";
+    h5LocationDescription =
+      "You are located at (lat: " +
+      h5UserLocationLat +
+      ", lon: " +
+      h5UserLocationLon +
+      ")";
   } else {
-    h5LocationDescription = "Pending h5 location data"
+    h5LocationDescription = "pending location data";
   }
 
   return (
@@ -209,42 +249,66 @@ function App() {
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
         <h4>eTicket geofence check-in demo</h4>
-        <button className="niceButton" onClick={() => setIsStartVXLocating(true)}>Locate me (WeiXin)</button>
-        <p>{vxLocationDescription}</p>
-        <br/>
-        <button className="niceButton" onClick={tryLocateByH5}>Locate me (H5)</button>
-        <p>{h5LocationDescription}</p>
-        <br/>
-        <a onClick={handleOpenCalendar}> pick the date of the party</a>
-        <DatePicker
-          value={selectDate}
-          isOpen={isOpenCalendar}
-          onSelect={handleSelectDate}
-          onCancel={handleCancelPickDate}
-        />
-        <p>{format(selectDate, "yyyy-MMM-dd")}</p>
         <br />
-        <form>
-          <label>debug distance for check-in : </label>
-          <input
-            type="text"
-            value={checkInDistance}
-            onChange={(e) => setCheckInDistance(e.target.value)}
-            placeholder="distance in metres"
-          ></input>
-          <label> metres </label>
-        </form>
-        <br/>
-        <p>
-          go within {checkInDistance.toLocaleString()} metres of the party location to check in.
-        </p>
-        <br/>
         {/* disabled={!isH5LocationAcquired && !isVXLocationAcquired}  */}
+
+        <label>{checkInStatusDescription} </label>
         <button className="checkInButton" onClick={checkIn}>
-          Check Me In
+          Check In
         </button>
-        <br/>
-        <label>{checkInStatusDescription}</label>
+
+        <br />
+        <p>
+          --------------------------- debug setting --------------------------
+        </p>
+        <DateTimeInput
+          value={selectDateTime}
+          onChange={(newValue) => {
+            setSelectDateTime(newValue);
+          }}
+        />
+        <p>you can only check in after {selectDateTime.toLocaleString()}</p>
+        <br />
+
+        {/* <button
+          className="niceButton"
+          onClick={() => setIsStartVXLocating(true)}
+        >
+          Locate me (WeiXin)
+        </button> */}
+        <button
+          className="niceButton"
+          onClick={tryLocateByVX}
+        >
+          Locate me (WeiXin)
+        </button>
+        <label> {vxLocationDescription}</label>
+
+        <br />
+
+        {/* <button className="niceButton" onClick={() => setIsStartH5Locating(true)}>
+          Locate me (H5)
+        </button> */}
+        <button className="niceButton" onClick={tryLocateByH5}>
+          Locate me (H5)
+        </button>        
+        <label> {h5LocationDescription}</label>
+
+        <br />
+
+        <label>debug distance for check-in : </label>
+        <input
+          type="text"
+          value={checkInDistance}
+          onChange={(e) => setCheckInDistance(e.target.value)}
+          placeholder="distance in metres"
+        ></input>
+        <label> metres </label>
+        <p>
+          go within {checkInDistance.toLocaleString()} metres of target
+          location to check in.
+        </p>
+        <br />
       </header>
     </div>
   );
