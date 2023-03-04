@@ -1,5 +1,5 @@
 {
-  "name": "eticket-geolocation-wxjs",
+  "name": "geofence-demo",
   "version": "0.1.0",
   "private": true,
   "dependencies": {

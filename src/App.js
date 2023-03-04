@@ -10,30 +10,32 @@ import { DateTimeInput } from "./DateTimeInput";
 import moment from "moment";
 
 // gcj02 coordinates for the destination, make sure the coordinate you get from the location service is also in gcj02
-const locationA = { latitude: 23.122012, longitude: 113.328508 };
-const locationB = { latitude: 34.212494, longitude: 108.840383 };
+const locationA = {
+  latitude: "specify your value",
+  longitude: "specify your value",
+};
+const locationB = {
+  latitude: "specify your value",
+  longitude: "specify your value",
+};
 
 function App() {
   const [selectDateTime, setSelectDateTime] = useState(moment());
-  const [checkInStatus, setCheckInStatus] = useState(
-    false
-  );
+  const [checkInStatus, setCheckInStatus] = useState(false);
 
   const [checkInDistance, setCheckInDistance] = useState(500);
 
-  const [isVXLocatingInProgress, setIsVXLocatingInProgress] = useState(false);
-  const [isVXLocationAcquired, setIsVXLocationAcquired] = useState(false);
-  const [vxUserLocationLat, setVXUserLocationLat] = useState(null);
-  const [vxUserLocationLon, setVXUserLocationLon] = useState(null);
+  const [isWXLocatingInProgress, setIsWXLocatingInProgress] = useState(false);
+  const [isWXLocationAcquired, setIsWXLocationAcquired] = useState(false);
+  const [wxUserLocationLat, setWXUserLocationLat] = useState(null);
+  const [wxUserLocationLon, setWXUserLocationLon] = useState(null);
 
   const [isH5LocatingInProgress, setIsH5LocatingInProgress] = useState(false);
   const [isH5LocationAcquired, setIsH5LocationAcquired] = useState(false);
   const [h5UserLocationLat, setH5UserLocationLat] = useState(null);
   const [h5UserLocationLon, setH5UserLocationLon] = useState(null);
 
-
-
-  function isWeiXinBrowser() {
+  function isWXBrowser() {
     var agent = navigator.userAgent.toLocaleLowerCase();
 
     if (agent.match(/MicroMessenger/i) == "micromessenger") {
@@ -43,16 +45,18 @@ function App() {
     }
   }
 
-  async function tryLocateByVX() {
-    setIsVXLocatingInProgress(true);
+  async function tryLocateByWX() {
+    setIsWXLocatingInProgress(true);
     try {
-      // use your vx sdk signature service here
-      const response = await fetch("your service", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      const response = await fetch(
+        "config your url for fetching wx js sdk signature data here",
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       const jsonAuthData = await response.json();
 
@@ -66,28 +70,28 @@ function App() {
       });
 
       wx.ready(function () {
-        console.log("weixin js sdk config ready, start to request location");
+        console.log("wx js sdk config ready, start to request location");
         wx.getLocation({
           type: "gcj02",
           success: function (res) {
-            setVXUserLocationLat(res.latitude);
-            setVXUserLocationLon(res.longitude);
-            setIsVXLocationAcquired(true);
-            setIsVXLocatingInProgress(false);
+            setWXUserLocationLat(res.latitude);
+            setWXUserLocationLon(res.longitude);
+            setIsWXLocationAcquired(true);
+            setIsWXLocatingInProgress(false);
           },
         });
       });
       wx.error(function (res) {
-        setIsVXLocationAcquired(false);
-        setIsVXLocatingInProgress(false);
-        console.log("weixin js sdk config failure:", res);
+        setIsWXLocationAcquired(false);
+        setIsWXLocatingInProgress(false);
+        console.log("wx js sdk config failure:", res);
         console.log("try switch to use H5 geolocation");
         tryLocateByH5();
       });
     } catch (e) {
-      setIsVXLocationAcquired(false);
-      setIsVXLocatingInProgress(false);
-      console.log("get weixin signature failure:", e);
+      setIsWXLocationAcquired(false);
+      setIsWXLocatingInProgress(false);
+      console.log("get wx js sdk signature failure:", e);
       console.log("try switch to use H5 geolocation");
       tryLocateByH5();
     }
@@ -121,7 +125,6 @@ function App() {
               alert("h5 get position error:" + err);
               console.log("h5 get position error:", err);
               break;
-
           }
           setIsH5LocationAcquired(false);
           setIsH5LocatingInProgress(false);
@@ -136,14 +139,13 @@ function App() {
   }
 
   useEffect(() => {
-    if (isVXLocationAcquired || isH5LocationAcquired) {
+    if (isWXLocationAcquired || isH5LocationAcquired) {
       checkIn();
     }
-  }, [isH5LocationAcquired, isVXLocationAcquired]);
+  }, [isH5LocationAcquired, isWXLocationAcquired]);
 
   function checkIn() {
-
-    if(checkInStatus) {
+    if (checkInStatus) {
       return;
     }
 
@@ -152,22 +154,22 @@ function App() {
       return;
     }
 
-    if (isVXLocatingInProgress || isH5LocatingInProgress) {
+    if (isWXLocatingInProgress || isH5LocatingInProgress) {
       console.log("locating in progress, ignore this check in");
       return;
     } else {
       console.log("start locating user position...");
-      if (isWeiXinBrowser()) {
+      if (isWXBrowser()) {
         console.log("user is using weixin browser");
-        tryLocateByVX();
+        tryLocateByWX();
       } else {
         console.log("user is not using weixin browser");
         tryLocateByH5();
       }
     }
 
-    if (!isH5LocationAcquired && !isVXLocationAcquired) {
-      console.log("no location data, skip this check in")
+    if (!isH5LocationAcquired && !isWXLocationAcquired) {
+      console.log("no location data, skip this check in");
       return;
     }
 
@@ -175,19 +177,19 @@ function App() {
     var userDistanceToNearest_VX = Number.MAX_VALUE;
     var userDistanceToNearest_H5 = Number.MAX_VALUE;
 
-    if (isVXLocationAcquired) {
-
+    if (isWXLocationAcquired) {
       var userDistanceToA_VX = getDistance(
         {
-          latitude: vxUserLocationLat,
-          longitude: vxUserLocationLon,
+          latitude: wxUserLocationLat,
+          longitude: wxUserLocationLon,
         },
         locationA
       );
+
       var userDistanceToB_VX = getDistance(
         {
-          latitude: vxUserLocationLat,
-          longitude: vxUserLocationLon,
+          latitude: wxUserLocationLat,
+          longitude: wxUserLocationLon,
         },
         locationB
       );
@@ -226,11 +228,11 @@ function App() {
 
     if (userDistanceToNearestParty <= checkInDistance) {
       setCheckInStatus(true);
-      alert("user has checked in the party");
-      console.log("user has checked in the party")
+      alert("you have checked in now.");
+      console.log("user has checked in.");
     } else {
       alert(
-        "Sorry, you are too far away from the party location by " +
+        "Sorry, you are still too far away from the target location by " +
           userDistanceToNearestParty +
           " metres"
       );
@@ -241,12 +243,12 @@ function App() {
   var vxLocationDescription;
   var h5LocationDescription;
 
-  if (isVXLocationAcquired) {
+  if (isWXLocationAcquired) {
     vxLocationDescription =
       "You are located at (lat: " +
-      vxUserLocationLat +
+      wxUserLocationLat +
       ", lon: " +
-      vxUserLocationLon +
+      wxUserLocationLon +
       ")";
   } else {
     vxLocationDescription = "pending location data";
@@ -264,23 +266,25 @@ function App() {
   }
 
   var checkInStatusDescription;
-  if(checkInStatus) {
-    checkInStatusDescription = "you have checked in."
+  if (checkInStatus) {
+    checkInStatusDescription = "you have checked in.";
   } else {
-    checkInStatusDescription = "you are not checked in."
+    checkInStatusDescription = "you are not checked in.";
   }
 
   return (
     <div className="App">
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
-        <h4>eTicket geofence check-in demo</h4>
+        <h4>geofence check-in demo</h4>
         <br />
-        {/* disabled={!isH5LocationAcquired && !isVXLocationAcquired}  */}
-
         <label>{checkInStatusDescription} </label>
-        <br/>
-        <button className="checkInButton" onClick={checkIn} disabled={checkInStatus}>
+        <br />
+        <button
+          className="checkInButton"
+          onClick={checkIn}
+          disabled={checkInStatus}
+        >
           Check In
         </button>
 
@@ -297,13 +301,13 @@ function App() {
         <p>you can only check in after {selectDateTime.toLocaleString()}</p>
         <br />
 
-        <button className="niceButton" onClick={tryLocateByVX}>
-          Locate me (WeiXin)
+        <button className="niceButton" onClick={tryLocateByWX}>
+          Locate me (by WX)
         </button>
         <label> {vxLocationDescription}</label>
         <br />
         <button className="niceButton" onClick={tryLocateByH5}>
-          Locate me (H5)
+          Locate me (by H5)
         </button>
         <label> {h5LocationDescription}</label>
 
