@@ -69,19 +69,17 @@
   font-size: 18px; /* add this line */
 }
 
-
-
-
 /* CSS */
 .niceButton {
   background-color: #9f77d6;
   border-radius: 8px;
   border-style: none;
   box-sizing: border-box;
-  color: #FFFFFF;
+  color: #ffffff;
   cursor: pointer;
   display: inline-block;
-  font-family: "Haas Grot Text R Web", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: "Haas Grot Text R Web", "Helvetica Neue", Helvetica, Arial,
+    sans-serif;
   font-size: 14px;
   font-weight: 500;
   height: 40px;
@@ -102,5 +100,5 @@
 
 .niceButton:hover,
 .niceButton:focus {
-  background-color: #F082AC;
+  background-color: #f082ac;
 }
